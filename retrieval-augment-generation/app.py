@@ -9,6 +9,9 @@ from PIL import Image
 import streamlit as st
 import base64
 
+## Setup variables to use for the rest of the app
+cloudformation_stack_name = "VectorSearchwithOpenSearch"
+
 # Create a Boto3 session
 session = boto3.Session()
 # Get the account id
@@ -70,10 +73,6 @@ def image_search(image, text):
     response_ = json.loads(r.text)
     
     return response_['hits']['hits']
-    
-
-## Setup variables to use for the rest of the demo
-cloudformation_stack_name = "advanced-rag-opensearch"
 
 outputs = get_cfn_outputs(cloudformation_stack_name)
 aos_host = outputs['OpenSearchDomainEndpoint']
