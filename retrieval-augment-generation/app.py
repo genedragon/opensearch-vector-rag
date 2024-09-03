@@ -10,7 +10,7 @@ import streamlit as st
 import base64
 
 ## Setup variables to use for the rest of the app
-cloudformation_stack_name = "VectorSearchwithOpenSearch"
+cloudformation_stack_name = "multimodal-rag-opensearch"
 
 # Create a Boto3 session
 session = boto3.Session()
