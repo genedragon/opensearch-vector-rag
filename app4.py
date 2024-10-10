@@ -75,7 +75,7 @@ with col2:
 with col3:
     st.write("Image 2")
     st.image(image3, width=150)
-    if st.button("Use this image3"):
+    if st.button("Use image 3"):
         query_image = image3
 
 @st.fragment
@@ -83,16 +83,28 @@ def response_generator(prompt):
     # RAG using multimoadal search to provide prompt context
     # Text and image as inputs
     # query = "for hiking"
-    query = prompt
+    query_text = prompt
     img = Image.open("./simple_bag.jpg") 
-    print("Input text query: "+query)
+    print("Input text query: "+query_text)
     print("Input query Image:")
     img.show()
 
     # Define the query and search body
-    with open("./simple_bag.jpg", "rb") as image_file:
-        query_image_binary = base64.b64encode(image_file.read()).decode("utf8")
-
+    if not query_image:
+        vector_embedding = {
+            "query_text": query_text,
+            "model_id": connector_ids['embedding_model_id'],
+            "k": 5
+        }
+    else:
+        with open(query_image, "rb") as image_file:
+            query_image_binary = base64.b64encode(image_file.read()).decode("utf8")
+        vector_embedding = {
+            "query_image": query_image_binary,
+            "query_text": query_text,
+            "model_id": connector_ids['embedding_model_id'],
+            "k": 5
+        }
     response = aos_client.search(
         index='bedrock-multimodal-rag',
         body={
@@ -101,19 +113,14 @@ def response_generator(prompt):
             },
             "query": {
                 "neural": {
-                    "vector_embedding": {
-                        "query_image": query_image_binary,
-                        "query_text": query,
-                        "model_id": connector_ids['embedding_model_id'],
-                        "k": 5
-                    }
+                    "vector_embedding": vector_embedding
                 }
             },
             "size": 5,
             "ext": {
                 "generative_qa_parameters": {
                     "llm_model": "bedrock/claude",
-                    "llm_question": query,
+                    "llm_question": query_text,
                     "memory_id": st.session_state.memory_id,
                     "context_size": 5,
                     "message_size": 5,
@@ -126,16 +133,9 @@ def response_generator(prompt):
         },
         request_timeout=30
     )
-    # Extract the generated 'shopping assistant' recommendations
-    # Split the string into lines
-    lines = response['ext']['retrieval_augmented_generation']['answer'].split('\n')
-    recommendations = []
-    for line in lines:
-        if re.match(r'[^\s\0]+', line):
-            recommendations.append(line.strip())
     return response
 
-#     STREAM RESPONSE using yield
+    #     STREAM RESPONSE using yield
     # for word in response.split():
     #     yield word + " "
     #     time.sleep(0.05)
@@ -175,7 +175,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # React to user input
-if prompt := st.chat_input("What is up?"):
+if prompt := st.chat_input("Type your question here..."):
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(prompt)
