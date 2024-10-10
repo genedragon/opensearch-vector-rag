@@ -49,6 +49,35 @@ st.set_page_config(
 )
 st.header("Shopping Assistant App with Amazon OpenSearch Service", divider="orange")
 
+# Define the image URLs or file paths
+image1 = "simple_bag.jpg"
+image2 = "simple_clock.jpg"
+image3 = "simple_dress.jpg"
+
+def select_image(selection):
+    query_image = selection
+    return query_image
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.write("Image 1")
+    st.image(image1, width=150)
+    if st.button("Use image 1"):
+        query_image = image1
+    
+with col2:
+    st.write("Image 2")
+    st.image(image2, width=150)
+    if st.button("Use image 2"):
+        query_image = image2
+        
+with col3:
+    st.write("Image 2")
+    st.image(image3, width=150)
+    if st.button("Use this image3"):
+        query_image = image3
+
 @st.fragment
 def response_generator(prompt):
     # RAG using multimoadal search to provide prompt context
@@ -104,7 +133,6 @@ def response_generator(prompt):
     for line in lines:
         if re.match(r'[^\s\0]+', line):
             recommendations.append(line.strip())
-    
     return response
 
 #     STREAM RESPONSE using yield
@@ -115,7 +143,6 @@ def response_generator(prompt):
 def new_chat_memory_id():
     # Prepare the query string
     payload = {
-        
         "name": "Conversation about products"
     }
     # Make the request
@@ -128,12 +155,18 @@ def new_chat_memory_id():
     # Persist memory_id
     st.session_state.memory_id = response['memory_id']
     st.session_state.messages = []
+    query_image = ''
 
 if 'memory_id' not in st.session_state:
     new_chat_memory_id()   
 
 with st.form("memory_id_display"):
     st.write("Memory ID: " + st.session_state.memory_id)
+    if 'query_image' not in globals():
+        query_image = ''
+        st.write("Querying without image.")
+    else:
+        st.write("Query image: " + query_image)
     st.form_submit_button("New chat",on_click=new_chat_memory_id)
 
 # Display chat messages from history on app rerun
@@ -151,18 +184,12 @@ if prompt := st.chat_input("What is up?"):
 
     response = response_generator(prompt)
     # Extract the generated 'shopping assistant' recommendations
-    # Split the string into lines
-    lines = response['ext']['retrieval_augmented_generation']['answer'].split('\n')
-    recommendations = []
-    for line in lines:
-        if re.match(r'[^\s\0]+', line):
-            recommendations.append(line.strip())
-    # Output the search results and shopping assistnat recommendations together
+    recommendations = response['ext']['retrieval_augmented_generation']['answer']
     with st.chat_message("assistant"):
         st.markdown('Search results and Shopping assistant recommendations:')
         count = 1
         for hit in response['hits']['hits']:
-            st.markdown("Search result "+str(count) + ": ")
+            st.markdown("**Search result "+str(count) + ":** ")
             st.markdown(hit["_source"]["product_description"])
             # st.markdown("Shopping assistant: ")
             # st.markdown(recommendations[count-1])
@@ -172,10 +199,6 @@ if prompt := st.chat_input("What is up?"):
             st.image(resized_img)
             count+=1
             st.markdown('')
-        st.write(recommendations)
+        st.markdown(":red[**Shopping Assistant:**]")
+        st.markdown(recommendations)
 
-    # # Display assistant response in chat message container
-    # with st.chat_message("assistant"):
-    #     st.markdown(response)
-    # # Add assistant response to chat history
-    # st.session_state.messages.append({"role": "assistant", "content": response})
