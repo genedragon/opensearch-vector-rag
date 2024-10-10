@@ -42,7 +42,12 @@ aos_client = OpenSearch(
     connection_class=RequestsHttpConnection
 )
 
-st.header("Shopping Assistant App with Amazon OpenSearch Service")
+st.set_page_config(
+    page_title="Shopping Assistant App", 
+    page_icon="opensearch_mark_darkmode.svg", 
+    layout="wide"
+)
+st.header("Shopping Assistant App with Amazon OpenSearch Service", divider="orange")
 
 @st.fragment
 def response_generator(prompt):
@@ -152,7 +157,6 @@ if prompt := st.chat_input("What is up?"):
     for line in lines:
         if re.match(r'[^\s\0]+', line):
             recommendations.append(line.strip())
-
     # Output the search results and shopping assistnat recommendations together
     with st.chat_message("assistant"):
         st.markdown('Search results and Shopping assistant recommendations:')
@@ -160,14 +164,15 @@ if prompt := st.chat_input("What is up?"):
         for hit in response['hits']['hits']:
             st.markdown("Search result "+str(count) + ": ")
             st.markdown(hit["_source"]["product_description"])
-            st.markdown("Shopping assistant: ")
-            st.markdown(recommendations[count-1])
+            # st.markdown("Shopping assistant: ")
+            # st.markdown(recommendations[count-1])
             image = Image.open(hit["_source"]["image_url"])
             new_size = (300, 200)
             resized_img = image.resize(new_size)
             st.image(resized_img)
             count+=1
             st.markdown('')
+        st.write(recommendations)
 
     # # Display assistant response in chat message container
     # with st.chat_message("assistant"):
