@@ -47,7 +47,7 @@ st.set_page_config(
     page_icon="opensearch_mark_darkmode.svg", 
     layout="wide"
 )
-st.header("Shopping Assistant App with Amazon OpenSearch Service", divider="orange")
+st.header("Shopping Assistant App with Amazon OpenSearch Service", divider="rainbow")
 
 # Define the image URLs or file paths
 image1 = "simple_bag.jpg"
@@ -64,19 +64,19 @@ with col1:
     st.write("Image 1")
     st.image(image1, width=150)
     if st.button("Use image 1"):
-        query_image = image1
+        st.session_state.query_image = image1
     
 with col2:
     st.write("Image 2")
     st.image(image2, width=150)
     if st.button("Use image 2"):
-        query_image = image2
+        st.session_state.query_image = image2
         
 with col3:
     st.write("Image 2")
     st.image(image3, width=150)
     if st.button("Use image 3"):
-        query_image = image3
+        st.session_state.query_image = image3
 
 @st.fragment
 def response_generator(prompt):
@@ -90,14 +90,14 @@ def response_generator(prompt):
     img.show()
 
     # Define the query and search body
-    if not query_image:
+    if not st.session_state.query_image:
         vector_embedding = {
             "query_text": query_text,
             "model_id": connector_ids['embedding_model_id'],
             "k": 5
         }
     else:
-        with open(query_image, "rb") as image_file:
+        with open(st.session_state.query_image, "rb") as image_file:
             query_image_binary = base64.b64encode(image_file.read()).decode("utf8")
         vector_embedding = {
             "query_image": query_image_binary,
@@ -155,18 +155,19 @@ def new_chat_memory_id():
     # Persist memory_id
     st.session_state.memory_id = response['memory_id']
     st.session_state.messages = []
-    query_image = ''
+    st.session_state.query_image = ''
 
 if 'memory_id' not in st.session_state:
     new_chat_memory_id()   
 
 with st.form("memory_id_display"):
     st.write("Memory ID: " + st.session_state.memory_id)
-    if 'query_image' not in globals():
-        query_image = ''
+    if 'query_image' not in st.session_state:
+        st.session_state.query_image = ''
         st.write("Querying without image.")
     else:
-        st.write("Query image: " + query_image)
+        st.write("Query image: " + st.session_state.query_image)
+        # st.image(st.session_state.query_image, width=30)
     st.form_submit_button("New chat",on_click=new_chat_memory_id)
 
 # Display chat messages from history on app rerun
@@ -181,8 +182,8 @@ if prompt := st.chat_input("Type your question here..."):
         st.markdown(prompt)
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": prompt})
-
-    response = response_generator(prompt)
+    with st.status("Fetching search results and shopping assistant response..."):
+        response = response_generator(prompt)
     # Extract the generated 'shopping assistant' recommendations
     recommendations = response['ext']['retrieval_augmented_generation']['answer']
     with st.chat_message("assistant"):
@@ -191,6 +192,8 @@ if prompt := st.chat_input("Type your question here..."):
         for hit in response['hits']['hits']:
             st.markdown("**Search result "+str(count) + ":** ")
             st.markdown(hit["_source"]["product_description"])
+            price = hit["_source"]["price"]
+            st.markdown(f":green[**Price: '{price}':**]")
             # st.markdown("Shopping assistant: ")
             # st.markdown(recommendations[count-1])
             image = Image.open(hit["_source"]["image_url"])
